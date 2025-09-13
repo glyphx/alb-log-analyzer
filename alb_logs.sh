@@ -282,10 +282,9 @@ else
     echo "📊 Downloading fresh ALB logs from S3..."
 fi
 
-# Common processing logic
-CUTOFF_TIME=$(date -u -d "$MINUTES_BACK minutes ago" '+%Y%m%d%H%M')
-
 if [ "$USE_CACHE" = false ]; then
+    # Common processing logic for fresh mode only
+    CUTOFF_TIME=$(date -u -d "$MINUTES_BACK minutes ago" '+%Y%m%d%H%M')
     # Fresh download
     LOG_FILES=$(aws s3 ls s3://$S3_BUCKET/$S3_PATH/$TODAY/ | awk -v cutoff="$CUTOFF_TIME" '{
         if (match($4, /[0-9]{8}T[0-9]{4}Z/)) {
