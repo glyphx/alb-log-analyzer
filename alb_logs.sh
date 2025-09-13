@@ -134,6 +134,7 @@ show_help() {
     echo -e "\033[33mOPTIONS:\033[0m"
     echo -e "    \033[31m--env\033[0m        Environment: \033[32mprod\033[0m (default), \033[33mstaging\033[0m, \033[34mdev\033[0m"
     echo -e "    \033[31m--cache\033[0m      Use smart caching (downloads only missing data)"
+    echo -e "    \033[31m--fresh\033[0m      Force fresh download (ignore cache completely)"
     echo ""
     echo -e "\033[33mOUTPUT COLUMNS:\033[0m"
     echo -e "    \033[31mEDT Time\033[0m         Request timestamp in your local timezone"
@@ -173,6 +174,13 @@ show_help() {
     echo "    - Rainbow headers and colorized output for easy reading"
     echo "    - Multiple endpoints show combined results with endpoint column"
     echo "    - IP mode processes most selective filter first for optimal performance"
+    echo ""
+    echo -e "\033[33mCACHE BEHAVIOR:\033[0m"
+    echo "    - Cache files stored as alb_logs_<env>_cache.log"
+    echo "    - --cache: Use cached data when available, download missing ranges"
+    echo "    - --fresh: Force complete fresh download, update cache"
+    echo "    - No flag: Download fresh data without caching"
+    echo "    - IP tracing works with both cached and fresh data"
     echo ""
 }
 
