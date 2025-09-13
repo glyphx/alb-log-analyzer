@@ -217,7 +217,9 @@ MINUTES_AGO=$(date -u -d "$MINUTES_BACK minutes ago" '+%Y-%m-%dT%H:%M:%S')
 TODAY=$(date -u '+%Y/%m/%d')
 LOCAL_TZ=$(date +%Z)
 
-if [ "$USE_CACHE" = true ]; then
+# Auto-detect cache usage: use cache if file exists, otherwise fresh
+if [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
+    USE_CACHE=true
     # Smart cache mode
     CACHE_NEEDS_UPDATE=false
     
@@ -277,13 +279,13 @@ if [ "$USE_CACHE" = true ]; then
     
     echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
 else
-    # Fresh mode (default)
+    # Fresh mode (default when no cache exists)
     echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
     echo "📊 Downloading fresh ALB logs from S3..."
 fi
 
 if [ "$USE_CACHE" = false ]; then
-    # Common processing logic for fresh mode only
+    # Fresh mode - download and create cache for future use
     CUTOFF_TIME=$(date -u -d "$MINUTES_BACK minutes ago" '+%Y%m%d%H%M')
     # Fresh download
     LOG_FILES=$(aws s3 ls s3://$S3_BUCKET/$S3_PATH/$TODAY/ | awk -v cutoff="$CUTOFF_TIME" '{
@@ -302,14 +304,20 @@ if [ "$USE_CACHE" = false ]; then
         exit 0
     fi
     
-    # Process fresh data
+    # Download and create cache file for future use
+    TEMP_FILE=$(mktemp)
     CURRENT=0
     echo "$LOG_FILES" | while read -r file; do
         [ -z "$file" ] && continue
         CURRENT=$((CURRENT + 1))
         echo "📥 Downloading $CURRENT/$TOTAL_FILES: $file" >&2
         aws s3 cp s3://$S3_BUCKET/$S3_PATH/$TODAY/$file - 2>/dev/null
-    done | zcat 2>/dev/null | awk -v start="$MINUTES_AGO" '$2 >= start' | grep "$ENDPOINT" | process_logs
+    done | zcat 2>/dev/null > "$TEMP_FILE"
+    
+    # Create cache file and process
+    sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
+    awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep "$ENDPOINT" | process_logs
+    rm -f "$TEMP_FILE"
     
     echo "" >&2
     echo "✅ Processing complete" >&2
