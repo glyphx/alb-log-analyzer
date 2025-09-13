@@ -102,8 +102,8 @@ process_logs() {
       
       # Extract endpoint from request
       request_line = $0
-      if (match(request_line, /GET https:\/\/[^\/]*\/([^" ?]+)/, endpoint_match)) {
-        endpoint = "/" endpoint_match[1]
+      if (match(request_line, /(GET|POST|PUT|PATCH|DELETE|OPTIONS) https:\/\/[^\/]*\/([^" ?]+)/, endpoint_match)) {
+        endpoint = "/" endpoint_match[2]
       } else {
         endpoint = "/"
       }
