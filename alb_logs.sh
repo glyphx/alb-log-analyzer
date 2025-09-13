@@ -299,6 +299,7 @@ elif [ -f "$CACHE_FILE" ]; then
     if [ ! -f "$CACHE_FILE" ] || [ ! -s "$CACHE_FILE" ]; then
         echo "📥 Cache empty or missing, downloading fresh data..."
         CACHE_NEEDS_UPDATE=true
+        CACHE_MODE="fresh data"
     else
         # Get oldest and newest timestamps in cache
         CACHE_OLDEST=$(awk 'NR==1 {print $2}' "$CACHE_FILE" | head -1)
@@ -309,8 +310,10 @@ elif [ -f "$CACHE_FILE" ]; then
         if [[ "$CACHE_OLDEST" > "$MINUTES_AGO" ]] || [[ "$CACHE_NEWEST" < "$MINUTES_AGO" ]]; then
             echo "📥 Cache doesn't cover requested time range, downloading additional data..."
             CACHE_NEEDS_UPDATE=true
+            CACHE_MODE="smart cache"
         else
             echo "📂 Using cache: $CACHE_FILE ($ENV environment)"
+            CACHE_MODE="cached"
         fi
     fi
     
@@ -352,16 +355,17 @@ elif [ -f "$CACHE_FILE" ]; then
     fi
     
     if [ "$IP_MODE" = true ]; then
-        echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
+        echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35m$CACHE_MODE\033[0m):"
     else
-        echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
+        echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35m$CACHE_MODE\033[0m):"
     fi
 else
     # Fresh mode (default when no cache exists)
+    CACHE_MODE="fresh data"
     if [ "$IP_MODE" = true ]; then
-        echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
+        echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35m$CACHE_MODE\033[0m):"
     else
-        echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
+        echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35m$CACHE_MODE\033[0m):"
     fi
     echo "📊 Downloading fresh ALB logs from S3..."
 fi
