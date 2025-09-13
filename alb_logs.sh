@@ -336,7 +336,7 @@ elif [ -f "$CACHE_FILE" ]; then
         TEMP_FILE=$(mktemp)
         
         # Parallel download with progress
-        echo "$LOG_FILES" | xargs -I {} -P 4 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
+        echo "$LOG_FILES" | xargs -I {} -P 20 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
         
         # Show progress while downloading
         DOWNLOAD_PID=$!
@@ -413,7 +413,7 @@ if [ "$USE_CACHE" = false ]; then
     TEMP_FILE=$(mktemp)
     
     # Parallel download with progress
-    echo "$LOG_FILES" | xargs -I {} -P 4 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
+    echo "$LOG_FILES" | xargs -I {} -P 20 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
     
     # Show progress while downloading
     DOWNLOAD_PID=$!
