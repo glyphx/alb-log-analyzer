@@ -11,6 +11,7 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 - 📊 **Smart Caching**: Caches downloaded logs for faster subsequent queries
 - ⚡ **Efficient Processing**: O(n) performance with optimized filtering
 - 🌈 **Rainbow Headers**: Beautiful colorized output for easy reading
+- 🔒 **Safe Queries**: Always requires timeframe to prevent accidental large data searches
 
 ## Setup
 
@@ -32,9 +33,7 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 
 ### IP Tracing Mode
 ```bash
-./alb_logs.sh --ip <ip_address> <endpoint1>[,endpoint2,...] [--env <environment>] [--cache|--fresh]
-./alb_logs.sh --ip <ip_address> <minutes> [--env <environment>] [--cache|--fresh]
-./alb_logs.sh --ip <ip_address> [--env <environment>] [--cache|--fresh]
+./alb_logs.sh --ip <ip_address> <endpoint1>[,endpoint2,...] <minutes> [--env <environment>] [--cache|--fresh]
 ```
 
 ## Arguments
@@ -42,7 +41,7 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 - **endpoint**: API endpoint(s) to filter. Use comma-separated for multiple:
   - Single: `/api`, `/burn`, `/marketplace`
   - Multiple: `/marketplace,/cart,/burn`
-- **minutes**: Number of minutes back to search (regular mode only)
+- **minutes**: Number of minutes back to search (required for all modes)
 - **--ip**: IP address to trace (IP mode only)
 
 ## Options
@@ -53,15 +52,15 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 
 ## Output Columns
 
-- **EDT Time**: Request timestamp in your local timezone
-- **Req_Proc_Time**: Request processing time - time from LB receiving request to sending to target
+- **EDT Time**: Request timestamp in your local timezone (8-char fixed width)
+- **Client_IP**: Source IP address (15-char fixed width, colorized)
 - **ELB_Status**: Load balancer status code (colorized)
-- **Target_Proc_Time**: Target processing time - time from LB sending request to target starting response
 - **Target_Status**: Target application status code - what the backend actually returned (colorized)
+- **Req_Proc_Time**: Request processing time - time from LB receiving request to sending to target
+- **Target_Proc_Time**: Target processing time - time from LB sending request to target starting response
 - **Received_Bytes**: Request size in bytes
-- **Client_IP**: Source IP address (colorized)
-- **User_Agent**: Browser/client user agent (truncated, colorized)
 - **Endpoint**: API endpoint path (colorized)
+- **User_Agent**: Browser/client user agent (truncated, colorized)
 
 ## Status Colors
 
@@ -85,24 +84,21 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 
 # Staging environment with fresh download
 ./alb_logs.sh /health 15 --env staging --fresh
+
+# Update endpoints (supports all HTTP methods)
+./alb_logs.sh /users/update 30 --cache
 ```
 
 ### IP Tracing Mode
 ```bash
-# Trace IP across single endpoint
-./alb_logs.sh --ip 64.252.70.194 /marketplace
+# Trace IP across single endpoint (last 60 minutes)
+./alb_logs.sh --ip 64.252.70.194 /marketplace 60
 
-# Trace IP across multiple endpoints
-./alb_logs.sh --ip 10.0.0.50 /api,/auth,/burn --cache
-
-# Trace IP for specific time range (last 30 minutes)
-./alb_logs.sh --ip 64.252.70.194 30 --cache
-
-# Trace IP across all endpoints (no time limit)
-./alb_logs.sh --ip 64.252.70.194 --cache
+# Trace IP across multiple endpoints (30 minutes)
+./alb_logs.sh --ip 10.0.0.50 /api,/auth,/burn 30 --cache
 
 # Trace IP in staging environment
-./alb_logs.sh --ip 192.168.1.100 /notifications/subscribe --env staging
+./alb_logs.sh --ip 192.168.1.100 /notifications/subscribe 15 --env staging
 ```
 
 ## Environments
@@ -127,8 +123,9 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 
 ## Notes
 
-- Downloads fresh data by default for accuracy
-- Smart cache downloads only missing time ranges
+- **Timeframe Required**: All queries must specify a time range to prevent accidental large data searches
+- **HTTP Method Support**: Extracts endpoints from all HTTP methods (GET, POST, PUT, PATCH, DELETE, OPTIONS)
+- **Fixed-Width Columns**: Time and IP columns use consistent spacing for better readability
 - Times automatically converted from UTC to local timezone
 - Results sorted chronologically
 - Multiple endpoints show combined results with endpoint column

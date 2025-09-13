@@ -128,7 +128,7 @@ show_help() {
     echo -e "    \033[36mendpoint\033[0m     API endpoint(s) to filter. Use comma-separated for multiple:"
     echo -e "                   Single: /api, /burn, /marketplace"
     echo -e "                   Multiple: /marketplace,/cart,/burn"
-    echo -e "    \033[35mminutes\033[0m      Number of minutes back to search (regular mode only)"
+    echo -e "    \033[35mminutes\033[0m      Number of minutes back to search (required for all modes)"
     echo -e "    \033[31m--ip\033[0m         IP address to trace (IP mode only)"
     echo ""
     echo -e "\033[33mOPTIONS:\033[0m"
