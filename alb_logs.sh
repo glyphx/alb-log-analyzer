@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Function to build grep pattern for multiple endpoints
+build_endpoint_pattern() {
+    local endpoints="$1"
+    if [[ "$endpoints" == *","* ]]; then
+        # Multiple endpoints - convert comma-separated to grep OR pattern
+        echo "$endpoints" | sed 's/,/\\|/g'
+    else
+        # Single endpoint
+        echo "$endpoints"
+    fi
+}
+
 # Function to process log output
 process_logs() {
     awk -F'"' '{
@@ -96,14 +108,14 @@ show_help() {
     echo -e "\033[1m\033[36mALB Log Analysis Tool\033[0m"
     echo ""
     echo -e "\033[33mUSAGE:\033[0m"
-    echo -e "    \033[32m$0\033[0m \033[36m<endpoint>\033[0m \033[35m<minutes>\033[0m [\033[31m--env\033[0m \033[34m<environment>\033[0m] [\033[31m--cache\033[0m]"
+    echo -e "    \033[32m$0\033[0m \033[36m<endpoint1>[,endpoint2,...]\033[0m \033[35m<minutes>\033[0m [\033[31m--env\033[0m \033[34m<environment>\033[0m] [\033[31m--cache\033[0m]"
     echo ""
     echo -e "\033[33mDESCRIPTION:\033[0m"
     echo "    Analyzes AWS Application Load Balancer logs for specific API endpoints."
     echo "    Downloads fresh data by default, with --cache for smart caching."
     echo ""
     echo -e "\033[33mARGUMENTS:\033[0m"
-    echo -e "    \033[36mendpoint\033[0m     API endpoint to filter (e.g., /api, /burn, /cart)"
+    echo -e "    \033[36mendpoint\033[0m     API endpoint(s) to filter (e.g., /api, /burn,/marketplace)"
     echo -e "    \033[35mminutes\033[0m      Number of minutes back to search"
     echo ""
     echo -e "\033[33mOPTIONS:\033[0m"
@@ -329,13 +341,15 @@ if [ "$USE_CACHE" = false ]; then
     
     # Create cache file and process
     sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
-    awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep "$ENDPOINT" | process_logs
+    ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+    awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
     rm -f "$TEMP_FILE"
     
     echo "" >&2
     echo "✅ Processing complete" >&2
 else
     # Use cached data
-    awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep "$ENDPOINT" | process_logs
+    ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+    awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
 fi
 
