@@ -334,13 +334,18 @@ elif [ -f "$CACHE_FILE" ]; then
         
         # Download new data and merge with existing cache
         TEMP_FILE=$(mktemp)
-        CURRENT=0
-        echo "$LOG_FILES" | while read -r file; do
-            [ -z "$file" ] && continue
-            CURRENT=$((CURRENT + 1))
-            printf "\r📥 Progress: %d/%d files" "$CURRENT" "$TOTAL_FILES" >&2
-            aws s3 cp s3://$S3_BUCKET/$S3_PATH/$TODAY/$file - 2>/dev/null
-        done | zcat 2>/dev/null > "$TEMP_FILE"
+        
+        # Parallel download with progress
+        echo "$LOG_FILES" | xargs -I {} -P 4 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
+        
+        # Show progress while downloading
+        DOWNLOAD_PID=$!
+        while kill -0 $DOWNLOAD_PID 2>/dev/null; do
+            printf "\r📥 Downloading %d files in parallel..." "$TOTAL_FILES" >&2
+            sleep 0.5
+        done
+        wait $DOWNLOAD_PID
+        printf "\r📥 Downloaded %d files                    \n" "$TOTAL_FILES" >&2
         
         # Merge with existing cache, remove duplicates, sort by timestamp
         if [ -f "$CACHE_FILE" ] && [ -s "$CACHE_FILE" ]; then
@@ -407,16 +412,17 @@ if [ "$USE_CACHE" = false ]; then
     # Download and create cache file for future use
     TEMP_FILE=$(mktemp)
     
-    # Download files with progress tracking
-    CURRENT=0
-    echo "$LOG_FILES" | {
-        while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            CURRENT=$((CURRENT + 1))
-            echo "📥 Downloading $CURRENT/$TOTAL_FILES: $file" >&2
-            aws s3 cp s3://$S3_BUCKET/$S3_PATH/$TODAY/$file - 2>/dev/null
-        done
-    } | zcat 2>/dev/null > "$TEMP_FILE"
+    # Parallel download with progress
+    echo "$LOG_FILES" | xargs -I {} -P 4 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
+    
+    # Show progress while downloading
+    DOWNLOAD_PID=$!
+    while kill -0 $DOWNLOAD_PID 2>/dev/null; do
+        printf "\r📥 Downloading %d files in parallel..." "$TOTAL_FILES" >&2
+        sleep 0.5
+    done
+    wait $DOWNLOAD_PID
+    printf "\r📥 Downloaded %d files                    \n" "$TOTAL_FILES" >&2
     
     # Create cache file and process
     sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
