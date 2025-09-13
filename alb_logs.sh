@@ -159,6 +159,8 @@ show_help() {
     echo -e "    \033[32m$0\033[0m \033[36m/api,/auth,/burn\033[0m \033[35m120\033[0m \033[31m--cache\033[0m  # Three endpoints with caching (2 hours)"
     echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[36m/marketplace\033[0m     # Trace IP across single endpoint"
     echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m10.0.0.50\033[0m \033[36m/api,/auth,/burn\033[0m \033[31m--cache\033[0m # Trace IP across multiple endpoints"
+    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[35m30\033[0m \033[31m--cache\033[0m        # Trace IP for specific time range (30 min)"
+    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[31m--cache\033[0m           # Trace IP across all endpoints (no time limit)"
     echo ""
     echo -e "\033[33mENVIRONMENTS:\033[0m"
     echo -e "    \033[32mprod\033[0m     - Production logs (default)"

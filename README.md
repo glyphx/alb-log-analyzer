@@ -33,6 +33,8 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 ### IP Tracing Mode
 ```bash
 ./alb_logs.sh --ip <ip_address> <endpoint1>[,endpoint2,...] [--env <environment>] [--cache|--fresh]
+./alb_logs.sh --ip <ip_address> <minutes> [--env <environment>] [--cache|--fresh]
+./alb_logs.sh --ip <ip_address> [--env <environment>] [--cache|--fresh]
 ```
 
 ## Arguments
@@ -92,6 +94,12 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 
 # Trace IP across multiple endpoints
 ./alb_logs.sh --ip 10.0.0.50 /api,/auth,/burn --cache
+
+# Trace IP for specific time range (last 30 minutes)
+./alb_logs.sh --ip 64.252.70.194 30 --cache
+
+# Trace IP across all endpoints (no time limit)
+./alb_logs.sh --ip 64.252.70.194 --cache
 
 # Trace IP in staging environment
 ./alb_logs.sh --ip 192.168.1.100 /notifications/subscribe --env staging
