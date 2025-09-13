@@ -333,10 +333,11 @@ elif [ -f "$CACHE_FILE" ]; then
         echo "📁 Found $TOTAL_FILES relevant log files (timestamp >= $CUTOFF_TIME)"
         
         # Download new data and merge with existing cache
+        TEMP_DIR=$(mktemp -d)
         TEMP_FILE=$(mktemp)
         
-        # Parallel download with progress
-        echo "$LOG_FILES" | xargs -I {} -P 20 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
+        # Download files in parallel to temp directory
+        echo "$LOG_FILES" | xargs -I {} -P 20 sh -c 'aws s3 cp s3://$1/$2/$3/{} $4/{} --no-progress >/dev/null 2>&1' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" "$TEMP_DIR" &
         
         # Show progress while downloading
         DOWNLOAD_PID=$!
@@ -346,6 +347,12 @@ elif [ -f "$CACHE_FILE" ]; then
         done
         wait $DOWNLOAD_PID
         printf "\r📥 Downloaded %d files                    \n" "$TOTAL_FILES" >&2
+        
+        # Decompress and concatenate files sequentially
+        for file in "$TEMP_DIR"/*; do
+            [ -f "$file" ] && zcat "$file" 2>/dev/null >> "$TEMP_FILE"
+        done
+        rm -rf "$TEMP_DIR"
         
         # Merge with existing cache, remove duplicates, sort by timestamp
         if [ -f "$CACHE_FILE" ] && [ -s "$CACHE_FILE" ]; then
@@ -410,10 +417,11 @@ if [ "$USE_CACHE" = false ]; then
     fi
     
     # Download and create cache file for future use
+    TEMP_DIR=$(mktemp -d)
     TEMP_FILE=$(mktemp)
     
-    # Parallel download with progress
-    echo "$LOG_FILES" | xargs -I {} -P 20 sh -c 'aws s3 cp s3://$1/$2/$3/{} - 2>/dev/null' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" | zcat 2>/dev/null > "$TEMP_FILE" &
+    # Download files in parallel to temp directory
+    echo "$LOG_FILES" | xargs -I {} -P 20 sh -c 'aws s3 cp s3://$1/$2/$3/{} $4/{} --no-progress >/dev/null 2>&1' _ "$S3_BUCKET" "$S3_PATH" "$TODAY" "$TEMP_DIR" &
     
     # Show progress while downloading
     DOWNLOAD_PID=$!
@@ -423,6 +431,12 @@ if [ "$USE_CACHE" = false ]; then
     done
     wait $DOWNLOAD_PID
     printf "\r📥 Downloaded %d files                    \n" "$TOTAL_FILES" >&2
+    
+    # Decompress and concatenate files sequentially
+    for file in "$TEMP_DIR"/*; do
+        [ -f "$file" ] && zcat "$file" 2>/dev/null >> "$TEMP_FILE"
+    done
+    rm -rf "$TEMP_DIR"
     
     # Create cache file and process
     sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
