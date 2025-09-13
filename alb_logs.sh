@@ -108,7 +108,7 @@ process_logs() {
         endpoint = "/"
       }
       
-      printf "%s | %s | %s | %s | %s | %s | %s | %s | %s\n", local_time, req_proc_time, elb_color, time_color, target_status_color, purple received_bytes reset, ip_color, green user_agent reset, cyan endpoint reset
+      printf "%s | %s | %s | %s | %s | %s | %s | %s | %s\n", local_time, ip_color, elb_color, target_status_color, req_proc_time, time_color, purple received_bytes reset, cyan endpoint reset, green user_agent reset
     }' | sort
 }
 
@@ -138,14 +138,14 @@ show_help() {
     echo ""
     echo -e "\033[33mOUTPUT COLUMNS:\033[0m"
     echo -e "    \033[31mEDT Time\033[0m         Request timestamp in your local timezone"
-    echo -e "    \033[33mReq_Proc_Time\033[0m    Request processing time - time from LB receiving request to sending to target"
-    echo -e "    \033[32mELB_Status\033[0m       Load balancer status code (colorized)"
-    echo -e "    \033[36mTarget_Proc_Time\033[0m Target processing time - time from LB sending request to target starting response"
-    echo -e "    \033[35mTarget_Status\033[0m    Target application status code - what the backend actually returned (colorized)"
-    echo -e "    \033[34mReceived_Bytes\033[0m   Request size in bytes"
     echo -e "    \033[91mClient_IP\033[0m        Source IP address (colorized)"
-    echo -e "    \033[92mUser_Agent\033[0m       Browser/client user agent (truncated, colorized)"
+    echo -e "    \033[32mELB_Status\033[0m       Load balancer status code (colorized)"
+    echo -e "    \033[35mTarget_Status\033[0m    Target application status code - what the backend actually returned (colorized)"
+    echo -e "    \033[33mReq_Proc_Time\033[0m    Request processing time - time from LB receiving request to sending to target"
+    echo -e "    \033[36mTarget_Proc_Time\033[0m Target processing time - time from LB sending request to target starting response"
+    echo -e "    \033[34mReceived_Bytes\033[0m   Request size in bytes"
     echo -e "    \033[36mEndpoint\033[0m         API endpoint path (colorized)"
+    echo -e "    \033[92mUser_Agent\033[0m       Browser/client user agent (truncated, colorized)"
     echo ""
     echo -e "\033[33mSTATUS COLORS:\033[0m"
     echo -e "    \033[32m\033[1m200/201/204\033[0m Success responses"
@@ -395,16 +395,16 @@ fi
 
 # Print headers before processing data
 echo -e "• \033[31mEDT Time\033[0m: Local timestamp"
-echo -e "• \033[33mReq_Proc_Time\033[0m: Request processing time - time from LB receiving request to sending to target"
-echo -e "• \033[32mELB_Status\033[0m: Load balancer status code"
-echo -e "• \033[36mTarget_Proc_Time\033[0m: Target processing time - time from LB sending request to target starting response"
-echo -e "• \033[35mTarget_Status\033[0m: Target application status code - what the backend actually returned"
-echo -e "• \033[34mReceived_Bytes\033[0m: Request size in bytes"
 echo -e "• \033[91mClient_IP\033[0m: Source IP address"
-echo -e "• \033[92mUser_Agent\033[0m: Browser info (truncated)"
+echo -e "• \033[32mELB_Status\033[0m: Load balancer status code"
+echo -e "• \033[35mTarget_Status\033[0m: Target application status code - what the backend actually returned"
+echo -e "• \033[33mReq_Proc_Time\033[0m: Request processing time - time from LB receiving request to sending to target"
+echo -e "• \033[36mTarget_Proc_Time\033[0m: Target processing time - time from LB sending request to target starting response"
+echo -e "• \033[34mReceived_Bytes\033[0m: Request size in bytes"
 echo -e "• \033[36mEndpoint\033[0m: API endpoint path"
+echo -e "• \033[92mUser_Agent\033[0m: Browser info (truncated)"
 echo -e "Status Colors: \033[32m\033[1m200/201/204\033[0m \033[34m304\033[0m \033[33m401/403\033[0m \033[31m\033[1m4xx/5xx\033[0m"
-echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[33mReq_Proc_Time\033[0m | \033[32mELB_Status\033[0m | \033[36mTarget_Proc_Time\033[0m | \033[35mTarget_Status\033[0m | \033[34mReceived_Bytes\033[0m | \033[91mClient_IP\033[0m | \033[92mUser_Agent\033[0m | \033[36mEndpoint\033[0m"
+echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[91mClient_IP\033[0m | \033[32mELB_Status\033[0m | \033[35mTarget_Status\033[0m | \033[33mReq_Proc_Time\033[0m | \033[36mTarget_Proc_Time\033[0m | \033[34mReceived_Bytes\033[0m | \033[36mEndpoint\033[0m | \033[92mUser_Agent\033[0m"
 echo "--------------------------------------------------------------------------------------------------------"
 
 if [ "$USE_CACHE" = false ]; then
