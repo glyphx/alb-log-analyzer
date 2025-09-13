@@ -1,0 +1,14 @@
+# ALB Log Analyzer Configuration Template
+# Copy this to alb_logs.conf and fill in your actual values
+
+# Production Environment
+PROD_S3_BUCKET="your-prod-bucket-name"
+PROD_S3_PATH="your-prod-path/AWSLogs/YOUR_ACCOUNT_ID/elasticloadbalancing/us-west-1"
+
+# Staging Environment  
+STAGING_S3_BUCKET="your-staging-bucket-name"
+STAGING_S3_PATH="your-staging-path/AWSLogs/YOUR_ACCOUNT_ID/elasticloadbalancing/us-west-1"
+
+# Development Environment
+DEV_S3_BUCKET="your-dev-bucket-name"
+DEV_S3_PATH="your-dev-path/AWSLogs/YOUR_ACCOUNT_ID/elasticloadbalancing/us-west-1"

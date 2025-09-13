@@ -1,0 +1,13 @@
+# Configuration files with sensitive data
+alb_logs.conf
+
+# Cache files
+*.log
+*_cache.log
+
+# AWS credentials
+.aws/
+
+# Temporary files
+*.tmp
+*.temp
