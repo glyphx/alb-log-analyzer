@@ -289,7 +289,8 @@ LOCAL_TZ=$(date +%Z)
 if [ "$FORCE_FRESH" = true ]; then
     # Force fresh download, ignore cache completely
     USE_CACHE=false
-elif [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
+elif [ -f "$CACHE_FILE" ]; then
+    # Cache exists, use smart caching
     USE_CACHE=true
     # Smart cache mode
     CACHE_NEEDS_UPDATE=false
@@ -299,11 +300,13 @@ elif [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
         echo "📥 Cache empty or missing, downloading fresh data..."
         CACHE_NEEDS_UPDATE=true
     else
-        # Get oldest timestamp in cache
+        # Get oldest and newest timestamps in cache
         CACHE_OLDEST=$(awk 'NR==1 {print $2}' "$CACHE_FILE" | head -1)
+        CACHE_NEWEST=$(tail -1 "$CACHE_FILE" | awk '{print $2}')
+        CURRENT_TIME=$(date -u '+%Y-%m-%dT%H:%M:%S')
         
-        # Check if cache covers requested time range
-        if [[ "$CACHE_OLDEST" > "$MINUTES_AGO" ]]; then
+        # Check if cache covers requested time range and is recent enough
+        if [[ "$CACHE_OLDEST" > "$MINUTES_AGO" ]] || [[ "$CACHE_NEWEST" < "$MINUTES_AGO" ]]; then
             echo "📥 Cache doesn't cover requested time range, downloading additional data..."
             CACHE_NEEDS_UPDATE=true
         else
