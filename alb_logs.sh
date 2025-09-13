@@ -117,7 +117,7 @@ show_help() {
     echo ""
     echo -e "\033[33mUSAGE:\033[0m"
     echo -e "    \033[32m$0\033[0m \033[36m<endpoint1>[,endpoint2,...]\033[0m \033[35m<minutes>\033[0m [\033[31m--env\033[0m \033[34m<environment>\033[0m] [\033[31m--cache\033[0m|\033[31m--fresh\033[0m]"
-    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m<ip_address>\033[0m [\033[36m<endpoint1>[,endpoint2,...]\033[0m|\033[35m<minutes>\033[0m] [\033[31m--env\033[0m \033[34m<environment>\033[0m] [\033[31m--cache\033[0m|\033[31m--fresh\033[0m]"
+    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m<ip_address>\033[0m [\033[36m<endpoint1>[,endpoint2,...]\033[0m] [\033[35m<minutes>\033[0m] [\033[31m--env\033[0m \033[34m<environment>\033[0m] [\033[31m--cache\033[0m|\033[31m--fresh\033[0m]"
     echo ""
     echo -e "\033[33mDESCRIPTION:\033[0m"
     echo "    Analyzes AWS Application Load Balancer logs for specific API endpoints."
@@ -157,7 +157,7 @@ show_help() {
     echo -e "    \033[32m$0\033[0m \033[36m/burn\033[0m \033[35m60\033[0m                   # Single endpoint: /burn requests (last 60 minutes)"
     echo -e "    \033[32m$0\033[0m \033[36m/marketplace,/cart\033[0m \033[35m30\033[0m        # Multiple endpoints: marketplace + cart (30 min)"
     echo -e "    \033[32m$0\033[0m \033[36m/api,/auth,/burn\033[0m \033[35m120\033[0m \033[31m--cache\033[0m  # Three endpoints with caching (2 hours)"
-    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[36m/marketplace\033[0m     # Trace IP across single endpoint"
+    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[36m/marketplace\033[0m     # Trace IP across single endpoint (all time)\n    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[36m/marketplace\033[0m \033[35m60\033[0m # Trace IP on endpoint (last 60 min)"
     echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m10.0.0.50\033[0m \033[36m/api,/auth,/burn\033[0m \033[31m--cache\033[0m # Trace IP across multiple endpoints"
     echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[35m30\033[0m \033[31m--cache\033[0m        # Trace IP for specific time range (30 min)"
     echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[31m--cache\033[0m           # Trace IP across all endpoints (no time limit)"
@@ -216,7 +216,13 @@ if [ "$1" = "--ip" ]; then
     elif [ -n "$3" ]; then
         # Third argument is endpoint
         ENDPOINT="$3"
-        shift 3
+        # Check if fourth argument is minutes
+        if [[ "$4" =~ ^[0-9]+$ ]]; then
+            MINUTES_BACK="$4"
+            shift 4
+        else
+            shift 3
+        fi
     else
         # No third argument
         ENDPOINT=""
@@ -367,7 +373,9 @@ elif [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
     fi
     
     if [ "$IP_MODE" = true ]; then
-        if [ -n "$ENDPOINT" ]; then
+        if [ -n "$ENDPOINT" ] && [ -n "$MINUTES_BACK" ]; then
+            echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
+        elif [ -n "$ENDPOINT" ]; then
             echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m (\033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
         elif [ -n "$MINUTES_BACK" ]; then
             echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
@@ -380,7 +388,9 @@ elif [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
 else
     # Fresh mode (default when no cache exists)
     if [ "$IP_MODE" = true ]; then
-        if [ -n "$ENDPOINT" ]; then
+        if [ -n "$ENDPOINT" ] && [ -n "$MINUTES_BACK" ]; then
+            echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
+        elif [ -n "$ENDPOINT" ]; then
             echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m (\033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
         elif [ -n "$MINUTES_BACK" ]; then
             echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m from \033[31m$MINUTES_AGO\033[0m to now (\033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
@@ -445,12 +455,16 @@ if [ "$USE_CACHE" = false ]; then
     sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
     
     if [ "$IP_MODE" = true ]; then
-        if [ -n "$ENDPOINT" ]; then
-            # IP mode with endpoint filtering
+        if [ -n "$ENDPOINT" ] && [ -n "$MINUTES_BACK" ]; then
+            # IP mode with both endpoint and time filtering
+            ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+            grep " $IP_ADDRESS:" "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
+        elif [ -n "$ENDPOINT" ]; then
+            # IP mode with endpoint filtering only
             ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
             grep " $IP_ADDRESS:" "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
         elif [ -n "$MINUTES_BACK" ]; then
-            # IP mode with time filtering (no endpoint)
+            # IP mode with time filtering only (no endpoint)
             grep " $IP_ADDRESS:" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
         else
             # IP mode with no filtering (all time, all endpoints)
@@ -469,12 +483,16 @@ if [ "$USE_CACHE" = false ]; then
 else
     # Use cached data
     if [ "$IP_MODE" = true ]; then
-        if [ -n "$ENDPOINT" ]; then
-            # IP mode with endpoint filtering
+        if [ -n "$ENDPOINT" ] && [ -n "$MINUTES_BACK" ]; then
+            # IP mode with both endpoint and time filtering
+            ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+            grep " $IP_ADDRESS:" "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
+        elif [ -n "$ENDPOINT" ]; then
+            # IP mode with endpoint filtering only
             ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
             grep " $IP_ADDRESS:" "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
         elif [ -n "$MINUTES_BACK" ]; then
-            # IP mode with time filtering (no endpoint)
+            # IP mode with time filtering only (no endpoint)
             grep " $IP_ADDRESS:" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
         else
             # IP mode with no filtering (all time, all endpoints)
