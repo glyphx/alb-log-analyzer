@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Function to build grep pattern for multiple endpoints
 build_endpoint_pattern() {
