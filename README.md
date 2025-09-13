@@ -112,8 +112,10 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 - Cache files stored as `alb_logs_<env>_cache.log`
 - **--cache**: Use cached data when available, download missing ranges
 - **--fresh**: Force complete fresh download, update cache
-- **No flag**: Download fresh data without caching
-- IP tracing works with both cached and fresh data
+- **No flag**: Use existing cache if available, smart caching by default
+- **Status indicators**: Shows 'cached', 'smart cache', or 'fresh data'
+- Smart cache automatically detects missing time ranges and downloads only needed data
+- IP tracing works with all cache modes
 
 ## Requirements
 
@@ -124,6 +126,7 @@ A colorful command-line tool for analyzing AWS Application Load Balancer logs wi
 ## Notes
 
 - **Timeframe Required**: All queries must specify a time range to prevent accidental large data searches
+- **Smart Caching**: Automatically uses existing cache and downloads missing data when needed
 - **HTTP Method Support**: Extracts endpoints from all HTTP methods (GET, POST, PUT, PATCH, DELETE, OPTIONS)
 - **Fixed-Width Columns**: Time and IP columns use consistent spacing for better readability
 - Times automatically converted from UTC to local timezone

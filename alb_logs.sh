@@ -180,8 +180,8 @@ show_help() {
     echo "    - Cache files stored as alb_logs_<env>_cache.log"
     echo "    - --cache: Use cached data when available, download missing ranges"
     echo "    - --fresh: Force complete fresh download, update cache"
-    echo "    - No flag: Download fresh data without caching"
-    echo "    - IP tracing works with both cached and fresh data"
+    echo "    - No flag: Use existing cache if available, smart caching by default"
+    echo "    - Status shows: 'cached', 'smart cache', or 'fresh data'"
     echo ""
 }
 
