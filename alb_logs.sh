@@ -117,16 +117,19 @@ show_help() {
     echo ""
     echo -e "\033[33mUSAGE:\033[0m"
     echo -e "    \033[32m$0\033[0m \033[36m<endpoint1>[,endpoint2,...]\033[0m \033[35m<minutes>\033[0m [\033[31m--env\033[0m \033[34m<environment>\033[0m] [\033[31m--cache\033[0m]"
+    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m<ip_address>\033[0m \033[36m<endpoint1>[,endpoint2,...]\033[0m [\033[31m--env\033[0m \033[34m<environment>\033[0m] [\033[31m--cache\033[0m]"
     echo ""
     echo -e "\033[33mDESCRIPTION:\033[0m"
     echo "    Analyzes AWS Application Load Balancer logs for specific API endpoints."
     echo "    Downloads fresh data by default, with --cache for smart caching."
+    echo "    IP mode traces specific IP addresses across endpoints."
     echo ""
     echo -e "\033[33mARGUMENTS:\033[0m"
     echo -e "    \033[36mendpoint\033[0m     API endpoint(s) to filter. Use comma-separated for multiple:"
     echo -e "                   Single: /api, /burn, /marketplace"
     echo -e "                   Multiple: /marketplace,/cart,/burn"
-    echo -e "    \033[35mminutes\033[0m      Number of minutes back to search"
+    echo -e "    \033[35mminutes\033[0m      Number of minutes back to search (regular mode only)"
+    echo -e "    \033[31m--ip\033[0m         IP address to trace (IP mode only)"
     echo ""
     echo -e "\033[33mOPTIONS:\033[0m"
     echo -e "    \033[31m--env\033[0m        Environment: \033[32mprod\033[0m (default), \033[33mstaging\033[0m, \033[34mdev\033[0m"
@@ -153,7 +156,8 @@ show_help() {
     echo -e "    \033[32m$0\033[0m \033[36m/burn\033[0m \033[35m60\033[0m                   # Single endpoint: /burn requests (last 60 minutes)"
     echo -e "    \033[32m$0\033[0m \033[36m/marketplace,/cart\033[0m \033[35m30\033[0m        # Multiple endpoints: marketplace + cart (30 min)"
     echo -e "    \033[32m$0\033[0m \033[36m/api,/auth,/burn\033[0m \033[35m120\033[0m \033[31m--cache\033[0m  # Three endpoints with caching (2 hours)"
-    echo -e "    \033[32m$0\033[0m \033[36m/notifications\033[0m \033[35m360\033[0m \033[31m--env\033[0m \033[34mdev\033[0m \033[31m--cache\033[0m  # Dev environment, cached data (6 hours)"
+    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m64.252.70.194\033[0m \033[36m/marketplace\033[0m     # Trace IP across single endpoint"
+    echo -e "    \033[32m$0\033[0m \033[31m--ip\033[0m \033[91m10.0.0.50\033[0m \033[36m/api,/auth,/burn\033[0m \033[31m--cache\033[0m # Trace IP across multiple endpoints"
     echo ""
     echo -e "\033[33mENVIRONMENTS:\033[0m"
     echo -e "    \033[32mprod\033[0m     - Production logs (default)"
@@ -168,10 +172,7 @@ show_help() {
     echo "    - Results sorted chronologically"
     echo "    - Rainbow headers and colorized output for easy reading"
     echo "    - Multiple endpoints show combined results with endpoint column"
-    echo ""
-    echo -e "\033[33mCOMING SOON:\033[0m"
-    echo -e "    \033[36mIP Tracing Mode\033[0m - Track specific IP addresses across endpoints"
-    echo -e "    Usage: ./alb_logs_ip.sh --ip <ip_address> <endpoint1> [endpoint2] ..."
+    echo "    - IP mode processes most selective filter first for optimal performance"
     echo ""
 }
 
@@ -181,12 +182,24 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 fi
 
 # Parse arguments
-ENDPOINT="$1"
-MINUTES_BACK="$2"
+IP_MODE=false
+IP_ADDRESS=""
+ENDPOINT=""
+MINUTES_BACK=""
 ENV="prod"
 USE_CACHE=false
 
-shift 2
+if [ "$1" = "--ip" ]; then
+    IP_MODE=true
+    IP_ADDRESS="$2"
+    ENDPOINT="$3"
+    shift 3
+else
+    ENDPOINT="$1"
+    MINUTES_BACK="$2"
+    shift 2
+fi
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --env)
@@ -205,10 +218,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [ -z "$ENDPOINT" ] || [ -z "$MINUTES_BACK" ]; then
-    echo "Error: Missing required arguments"
-    show_help
-    exit 1
+if [ "$IP_MODE" = true ]; then
+    if [ -z "$IP_ADDRESS" ] || [ -z "$ENDPOINT" ]; then
+        echo "Error: IP mode requires --ip <address> <endpoint>"
+        show_help
+        exit 1
+    fi
+else
+    if [ -z "$ENDPOINT" ] || [ -z "$MINUTES_BACK" ]; then
+        echo "Error: Regular mode requires <endpoint> <minutes>"
+        show_help
+        exit 1
+    fi
 fi
 
 #!/bin/bash
@@ -241,7 +262,11 @@ esac
 # Default cache file
 CACHE_FILE="alb_logs_${ENV}_cache.log"
 
-MINUTES_AGO=$(date -u -d "$MINUTES_BACK minutes ago" '+%Y-%m-%dT%H:%M:%S')
+# Set time variables for regular mode only
+if [ "$IP_MODE" = false ]; then
+    MINUTES_AGO=$(date -u -d "$MINUTES_BACK minutes ago" '+%Y-%m-%dT%H:%M:%S')
+fi
+
 TODAY=$(date -u '+%Y/%m/%d')
 LOCAL_TZ=$(date +%Z)
 
@@ -259,8 +284,8 @@ if [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
         # Get oldest timestamp in cache
         CACHE_OLDEST=$(awk 'NR==1 {print $2}' "$CACHE_FILE" | head -1)
         
-        # Check if cache covers requested time range
-        if [[ "$CACHE_OLDEST" > "$MINUTES_AGO" ]]; then
+        # Check if cache covers requested time range (only for regular mode)
+        if [ "$IP_MODE" = false ] && [[ "$CACHE_OLDEST" > "$MINUTES_AGO" ]]; then
             echo "📥 Cache doesn't cover requested time range, downloading additional data..."
             CACHE_NEEDS_UPDATE=true
         else
@@ -305,10 +330,18 @@ if [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
         echo "" >&2
     fi
     
-    echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
+    if [ "$IP_MODE" = true ]; then
+        echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m (\033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
+    else
+        echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mcached\033[0m):"
+    fi
 else
     # Fresh mode (default when no cache exists)
-    echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
+    if [ "$IP_MODE" = true ]; then
+        echo -e "🔍 Tracing IP \033[91m$IP_ADDRESS\033[0m across \033[36m$ENDPOINT\033[0m (\033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
+    else
+        echo -e "🔍 All \033[36m$ENDPOINT\033[0m requests from \033[31m$MINUTES_AGO\033[0m to now (times in \033[33m$LOCAL_TZ\033[0m, \033[32m$ENV\033[0m environment, \033[35mfresh data\033[0m):"
+    fi
     echo "📊 Downloading fresh ALB logs from S3..."
 fi
 
@@ -358,15 +391,31 @@ if [ "$USE_CACHE" = false ]; then
     
     # Create cache file and process
     sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
-    ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
-    grep -E "$ENDPOINT_PATTERN" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
+    
+    if [ "$IP_MODE" = true ]; then
+        # IP mode: IP first (most selective), then endpoints - O(n) where n is IP matches
+        ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+        grep " $IP_ADDRESS:" "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
+    else
+        # Regular mode: endpoints first, then time filter
+        ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+        grep -E "$ENDPOINT_PATTERN" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
+    fi
+    
     rm -f "$TEMP_FILE"
     
     echo "" >&2
     echo "✅ Processing complete" >&2
 else
     # Use cached data
-    ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
-    grep -E "$ENDPOINT_PATTERN" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
+    if [ "$IP_MODE" = true ]; then
+        # IP mode: IP first (most selective), then endpoints - O(n) where n is IP matches
+        ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+        grep " $IP_ADDRESS:" "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
+    else
+        # Regular mode: endpoints first, then time filter
+        ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
+        grep -E "$ENDPOINT_PATTERN" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
+    fi
 fi
 
