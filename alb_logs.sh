@@ -352,7 +352,7 @@ if [ "$USE_CACHE" = false ]; then
     # Create cache file and process
     sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
     ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
-    awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
+    grep -E "$ENDPOINT_PATTERN" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
     rm -f "$TEMP_FILE"
     
     echo "" >&2
@@ -360,6 +360,6 @@ if [ "$USE_CACHE" = false ]; then
 else
     # Use cached data
     ENDPOINT_PATTERN=$(build_endpoint_pattern "$ENDPOINT")
-    awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep -E "$ENDPOINT_PATTERN" | process_logs
+    grep -E "$ENDPOINT_PATTERN" "$CACHE_FILE" | awk -v start="$MINUTES_AGO" '$2 >= start' | process_logs
 fi
 
