@@ -284,6 +284,19 @@ else
     echo "📊 Downloading fresh ALB logs from S3..."
 fi
 
+# Print headers before processing data
+echo -e "• \033[31mEDT Time\033[0m: Local timestamp"
+echo -e "• \033[33mReq_Proc_Time\033[0m: Request processing time - time from LB receiving request to sending to target"
+echo -e "• \033[32mELB_Status\033[0m: Load balancer status code"
+echo -e "• \033[36mTarget_Proc_Time\033[0m: Target processing time - time from LB sending request to target starting response"
+echo -e "• \033[35mTarget_Status\033[0m: Target application status code - what the backend actually returned"
+echo -e "• \033[34mReceived_Bytes\033[0m: Request size in bytes"
+echo -e "• \033[91mClient_IP\033[0m: Source IP address"
+echo -e "• \033[92mUser_Agent\033[0m: Browser info (truncated)"
+echo -e "Status Colors: \033[32m\033[1m200/201/204\033[0m \033[34m304\033[0m \033[33m401/403\033[0m \033[31m\033[1m4xx/5xx\033[0m"
+echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[33mReq_Proc_Time\033[0m | \033[32mELB_Status\033[0m | \033[36mTarget_Proc_Time\033[0m | \033[35mTarget_Status\033[0m | \033[34mReceived_Bytes\033[0m | \033[91mClient_IP\033[0m | \033[92mUser_Agent\033[0m"
+echo "--------------------------------------------------------------------------------------------------------"
+
 if [ "$USE_CACHE" = false ]; then
     # Fresh mode - download and create cache for future use
     CUTOFF_TIME=$(date -u -d "$MINUTES_BACK minutes ago" '+%Y%m%d%H%M')
@@ -325,17 +338,4 @@ else
     # Use cached data
     awk -v start="$MINUTES_AGO" '$2 >= start' "$CACHE_FILE" | grep "$ENDPOINT" | process_logs
 fi
-
-# Common output headers
-echo -e "• \033[31mEDT Time\033[0m: Local timestamp"
-echo -e "• \033[33mReq_Proc_Time\033[0m: Request processing time - time from LB receiving request to sending to target"
-echo -e "• \033[32mELB_Status\033[0m: Load balancer status code"
-echo -e "• \033[36mTarget_Proc_Time\033[0m: Target processing time - time from LB sending request to target starting response"
-echo -e "• \033[35mTarget_Status\033[0m: Target application status code - what the backend actually returned"
-echo -e "• \033[34mReceived_Bytes\033[0m: Request size in bytes"
-echo -e "• \033[91mClient_IP\033[0m: Source IP address"
-echo -e "• \033[92mUser_Agent\033[0m: Browser info (truncated)"
-echo -e "Status Colors: \033[32m\033[1m200/201/204\033[0m \033[34m304\033[0m \033[33m401/403\033[0m \033[31m\033[1m4xx/5xx\033[0m"
-echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[33mReq_Proc_Time\033[0m | \033[32mELB_Status\033[0m | \033[36mTarget_Proc_Time\033[0m | \033[35mTarget_Status\033[0m | \033[34mReceived_Bytes\033[0m | \033[91mClient_IP\033[0m | \033[92mUser_Agent\033[0m"
-echo "--------------------------------------------------------------------------------------------------------"
 
