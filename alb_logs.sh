@@ -5,7 +5,7 @@ build_endpoint_pattern() {
     local endpoints="$1"
     if [[ "$endpoints" == *","* ]]; then
         # Multiple endpoints - convert comma-separated to grep OR pattern
-        echo "$endpoints" | sed 's/,/\\|/g'
+        echo "$endpoints" | sed 's/,/|/g'
     else
         # Single endpoint
         echo "$endpoints"
@@ -100,7 +100,15 @@ process_logs() {
         target_status_color = target_status
       }
       
-      printf "%s | %s | %s | %s | %s | %s | %s | %s\n", local_time, req_proc_time, elb_color, time_color, target_status_color, purple received_bytes reset, ip_color, green user_agent reset
+      # Extract endpoint from request
+      request_line = $0
+      if (match(request_line, /GET https:\/\/[^\/]*\/([^" ?]+)/, endpoint_match)) {
+        endpoint = "/" endpoint_match[1]
+      } else {
+        endpoint = "/"
+      }
+      
+      printf "%s | %s | %s | %s | %s | %s | %s | %s | %s\n", local_time, req_proc_time, elb_color, time_color, target_status_color, purple received_bytes reset, ip_color, green user_agent reset, cyan endpoint reset
     }' | sort
 }
 
@@ -131,6 +139,7 @@ show_help() {
     echo -e "    \033[34mReceived_Bytes\033[0m   Request size in bytes"
     echo -e "    \033[91mClient_IP\033[0m        Source IP address (colorized)"
     echo -e "    \033[92mUser_Agent\033[0m       Browser/client user agent (truncated, colorized)"
+    echo -e "    \033[36mEndpoint\033[0m         API endpoint path (colorized)"
     echo ""
     echo -e "\033[33mSTATUS COLORS:\033[0m"
     echo -e "    \033[32m\033[1m200/201/204\033[0m Success responses"
@@ -305,8 +314,9 @@ echo -e "• \033[35mTarget_Status\033[0m: Target application status code - what
 echo -e "• \033[34mReceived_Bytes\033[0m: Request size in bytes"
 echo -e "• \033[91mClient_IP\033[0m: Source IP address"
 echo -e "• \033[92mUser_Agent\033[0m: Browser info (truncated)"
+echo -e "• \033[36mEndpoint\033[0m: API endpoint path"
 echo -e "Status Colors: \033[32m\033[1m200/201/204\033[0m \033[34m304\033[0m \033[33m401/403\033[0m \033[31m\033[1m4xx/5xx\033[0m"
-echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[33mReq_Proc_Time\033[0m | \033[32mELB_Status\033[0m | \033[36mTarget_Proc_Time\033[0m | \033[35mTarget_Status\033[0m | \033[34mReceived_Bytes\033[0m | \033[91mClient_IP\033[0m | \033[92mUser_Agent\033[0m"
+echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[33mReq_Proc_Time\033[0m | \033[32mELB_Status\033[0m | \033[36mTarget_Proc_Time\033[0m | \033[35mTarget_Status\033[0m | \033[34mReceived_Bytes\033[0m | \033[91mClient_IP\033[0m | \033[92mUser_Agent\033[0m | \033[36mEndpoint\033[0m"
 echo "--------------------------------------------------------------------------------------------------------"
 
 if [ "$USE_CACHE" = false ]; then
