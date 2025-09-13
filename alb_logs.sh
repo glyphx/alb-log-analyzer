@@ -196,6 +196,7 @@ ENDPOINT=""
 MINUTES_BACK=""
 ENV="prod"
 USE_CACHE=false
+FORCE_FRESH=false
 
 if [ "$1" = "--ip" ]; then
     IP_MODE=true
@@ -216,6 +217,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --cache)
             USE_CACHE=true
+            shift
+            ;;
+        --fresh)
+            FORCE_FRESH=true
             shift
             ;;
         *)
@@ -278,8 +283,11 @@ fi
 TODAY=$(date -u '+%Y/%m/%d')
 LOCAL_TZ=$(date +%Z)
 
-# Auto-detect cache usage: use cache if file exists, otherwise fresh
-if [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
+# Handle cache logic
+if [ "$FORCE_FRESH" = true ]; then
+    # Force fresh download, ignore cache completely
+    USE_CACHE=false
+elif [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
     USE_CACHE=true
     # Smart cache mode
     CACHE_NEEDS_UPDATE=false
@@ -389,13 +397,17 @@ if [ "$USE_CACHE" = false ]; then
     
     # Download and create cache file for future use
     TEMP_FILE=$(mktemp)
+    
+    # Download files with progress tracking
     CURRENT=0
-    echo "$LOG_FILES" | while read -r file; do
-        [ -z "$file" ] && continue
-        CURRENT=$((CURRENT + 1))
-        echo "📥 Downloading $CURRENT/$TOTAL_FILES: $file" >&2
-        aws s3 cp s3://$S3_BUCKET/$S3_PATH/$TODAY/$file - 2>/dev/null
-    done | zcat 2>/dev/null > "$TEMP_FILE"
+    echo "$LOG_FILES" | {
+        while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            CURRENT=$((CURRENT + 1))
+            echo "📥 Downloading $CURRENT/$TOTAL_FILES: $file" >&2
+            aws s3 cp s3://$S3_BUCKET/$S3_PATH/$TODAY/$file - 2>/dev/null
+        done
+    } | zcat 2>/dev/null > "$TEMP_FILE"
     
     # Create cache file and process
     sort -k2,2 "$TEMP_FILE" > "$CACHE_FILE"
