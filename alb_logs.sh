@@ -302,8 +302,8 @@ elif [ "$USE_CACHE" = true ] || [ -f "$CACHE_FILE" ]; then
         # Get oldest timestamp in cache
         CACHE_OLDEST=$(awk 'NR==1 {print $2}' "$CACHE_FILE" | head -1)
         
-        # Check if cache covers requested time range (only for regular mode)
-        if [ "$IP_MODE" = false ] && [[ "$CACHE_OLDEST" > "$MINUTES_AGO" ]]; then
+        # Check if cache covers requested time range
+        if [[ "$CACHE_OLDEST" > "$MINUTES_AGO" ]]; then
             echo "📥 Cache doesn't cover requested time range, downloading additional data..."
             CACHE_NEEDS_UPDATE=true
         else
