@@ -75,8 +75,9 @@ process_logs() {
         target_color = target_status
       }
       
-      # Color IP addresses
-      ip_color = salmon client_ip reset
+      # Color IP addresses with proper padding
+      ip_padded = sprintf("%-13s", client_ip)
+      ip_color = salmon ip_padded reset
       
       # Color target processing time (red if > 1 second)
       if (target_proc_time > 1.0) {
@@ -108,7 +109,7 @@ process_logs() {
         endpoint = "/"
       }
       
-      printf "%-8s | %-15s | %-3s | %-3s | %-5s | %-6s | %-6s | %-25s | %s\n", local_time, ip_color, elb_color, target_status_color, req_proc_time, time_color, purple received_bytes reset, cyan endpoint reset, green user_agent reset
+      printf "%-8s | %s | %-3s | %-3s | %-5s | %-6s | %-6s | %-25s | %s\n", local_time, ip_color, elb_color, target_status_color, req_proc_time, time_color, purple received_bytes reset, cyan endpoint reset, green user_agent reset
     }' | sort
 }
 
@@ -393,8 +394,8 @@ echo -e "• \033[34mReceived_Bytes\033[0m: Request size in bytes"
 echo -e "• \033[36mEndpoint\033[0m: API endpoint path"
 echo -e "• \033[92mUser_Agent\033[0m: Browser info (truncated)"
 echo -e "Status Colors: \033[32m\033[1m200/201/204\033[0m \033[34m304\033[0m \033[33m401/403\033[0m \033[31m\033[1m4xx/5xx\033[0m"
-echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[91mClient_IP\033[0m       | \033[32mELB\033[0m | \033[35mTgt\033[0m | \033[33mReq_T\033[0m | \033[36mTgt_T\033[0m  | \033[34mBytes\033[0m  | \033[36mEndpoint\033[0m                  | \033[92mUser_Agent\033[0m"
-echo "---------|-----------------|-----|-----|-------|--------|--------|---------------------------|------------"
+echo -e "\033[31m$LOCAL_TZ Time\033[0m | \033[91mClient_IP\033[0m   | \033[32mELB\033[0m | \033[35mTgt\033[0m | \033[33mReq_T\033[0m | \033[36mTgt_T\033[0m  | \033[34mBytes\033[0m  | \033[36mEndpoint\033[0m                  | \033[92mUser_Agent\033[0m"
+echo "---------|-------------|-----|-----|-------|--------|--------|---------------------------|------------"
 
 if [ "$USE_CACHE" = false ]; then
     # Fresh mode - download and create cache for future use
