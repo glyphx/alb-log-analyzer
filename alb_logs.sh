@@ -131,6 +131,10 @@ process_logs() {
       request_line = $0
       if (match(request_line, /(GET|POST|PUT|PATCH|DELETE|OPTIONS) https:\/\/[^\/]*\/([^" ?]+)/, endpoint_match)) {
         endpoint = "/" endpoint_match[2]
+        # Clean up user UUIDs in endpoints
+        if (match(endpoint, /^\/users\/[A-Za-z0-9]{40,}/, uuid_match)) {
+          endpoint = "/users/{uuid}"
+        }
       } else {
         endpoint = "/"
       }
