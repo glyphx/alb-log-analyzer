@@ -18,9 +18,34 @@ process_logs() {
       time = substr($1, index($1, " ") + 1)
       utc_time = substr(time, 1, 19)
       
-      cmd = "date -d \"" utc_time " UTC\" \"+%H:%M:%S\""
-      cmd | getline local_time
-      close(cmd)
+      # Parse UTC timestamp: 2025-01-15T12:34:56
+      split(utc_time, dt_parts, "T")
+      split(dt_parts[1], date_parts, "-")
+      split(dt_parts[2], time_parts, ":")
+      
+      year = date_parts[1]
+      month = date_parts[2] 
+      day = date_parts[3]
+      hour = time_parts[1]
+      minute = time_parts[2]
+      second = time_parts[3]
+      
+      # Convert to epoch seconds (UTC)
+      utc_epoch = mktime(year " " month " " day " " hour " " minute " " second)
+      
+      # Get local timezone offset in seconds
+      "date +%z" | getline tz_offset_str
+      close("date +%z")
+      
+      # Parse timezone offset (+/-HHMM)
+      tz_sign = substr(tz_offset_str, 1, 1) == "-" ? -1 : 1
+      tz_hours = substr(tz_offset_str, 2, 2)
+      tz_minutes = substr(tz_offset_str, 4, 2)
+      tz_offset_seconds = tz_sign * (tz_hours * 3600 + tz_minutes * 60)
+      
+      # Convert to local time
+      local_epoch = utc_epoch + tz_offset_seconds
+      local_time = strftime("%H:%M:%S", local_epoch)
       
       split($1, fields, " ")
       req_proc_time = fields[6]
