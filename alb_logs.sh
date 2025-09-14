@@ -14,7 +14,18 @@ build_endpoint_pattern() {
 
 # Function to process log output
 process_logs() {
-    awk -F'"' '{
+    awk -F'"' 'BEGIN {
+      # Get timezone offset once at startup
+      "date +%z" | getline tz_offset_str
+      close("date +%z")
+      
+      # Parse timezone offset (+/-HHMM)
+      tz_sign = substr(tz_offset_str, 1, 1) == "-" ? -1 : 1
+      tz_hours = substr(tz_offset_str, 2, 2)
+      tz_minutes = substr(tz_offset_str, 4, 2)
+      tz_offset_seconds = tz_sign * (tz_hours * 3600 + tz_minutes * 60)
+    }
+    {
       time = substr($1, index($1, " ") + 1)
       utc_time = substr(time, 1, 19)
       
@@ -32,16 +43,6 @@ process_logs() {
       
       # Convert to epoch seconds (UTC)
       utc_epoch = mktime(year " " month " " day " " hour " " minute " " second)
-      
-      # Get local timezone offset in seconds
-      "date +%z" | getline tz_offset_str
-      close("date +%z")
-      
-      # Parse timezone offset (+/-HHMM)
-      tz_sign = substr(tz_offset_str, 1, 1) == "-" ? -1 : 1
-      tz_hours = substr(tz_offset_str, 2, 2)
-      tz_minutes = substr(tz_offset_str, 4, 2)
-      tz_offset_seconds = tz_sign * (tz_hours * 3600 + tz_minutes * 60)
       
       # Convert to local time
       local_epoch = utc_epoch + tz_offset_seconds
