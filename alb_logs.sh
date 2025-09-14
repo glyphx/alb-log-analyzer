@@ -105,13 +105,14 @@ process_logs() {
       ip_padded = sprintf("%-13s", client_ip)
       ip_color = salmon ip_padded reset
       
-      # Color target processing time (red if > 1 second)
+      # Color target processing time (red if > 1 second) with proper padding
+      time_padded = sprintf("%5s", target_proc_time)
       if (target_proc_time > 1.0) {
-        time_color = red bold target_proc_time reset
+        time_color = red bold time_padded reset
       } else if (target_proc_time > 0.5) {
-        time_color = yellow target_proc_time reset
+        time_color = yellow time_padded reset
       } else {
-        time_color = target_proc_time
+        time_color = time_padded
       }
       
       # Color target status
@@ -143,7 +144,7 @@ process_logs() {
       bytes_padded = sprintf("%4s", received_bytes)
       bytes_color = purple bytes_padded reset
       
-      printf "%-8s | %s | %-3s | %-3s | %-5s | %-6s | %s | %-25s | %s\n", local_time, ip_color, elb_color, target_status_color, req_proc_time, time_color, bytes_color, cyan endpoint reset, green user_agent reset
+      printf "%-8s | %s | %-3s | %-3s | %-5s | %s | %s | %-25s | %s\n", local_time, ip_color, elb_color, target_status_color, req_proc_time, time_color, bytes_color, cyan endpoint reset, green user_agent reset
     }' | sort
 }
 
